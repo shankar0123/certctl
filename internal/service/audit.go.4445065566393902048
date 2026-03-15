@@ -119,7 +119,7 @@ func (s *AuditService) ListAuditEvents(page, perPage int) ([]domain.AuditEvent, 
 	}
 
 	filter := &repository.AuditFilter{
-		Offset:  int64((page - 1) * perPage),
+		Offset: int64((page - 1) * perPage),
 		PerPage: int64(perPage),
 	}
 

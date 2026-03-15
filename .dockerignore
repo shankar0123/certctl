@@ -1,0 +1,9 @@
+.git
+vendor
+bin
+*.md
+docs
+scripts
+coverage.*
+.env
+.DS_Store

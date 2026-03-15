@@ -1,24 +1,18 @@
-# Multi-stage build for certctl agent binary
+# Multi-stage build for certctl agent
 # Stage 1: Build
 FROM golang:1.22-alpine AS builder
 
-# Install build dependencies
 RUN apk add --no-cache git ca-certificates
 
-# Set working directory
 WORKDIR /app
 
-# Copy go mod and sum files
 COPY go.mod go.sum ./
-
-# Download dependencies
 RUN go mod download
 
-# Copy source code
 COPY . .
 
-# Build agent binary only
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+ARG TARGETARCH=amd64
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
     -ldflags="-w -s" \
     -o bin/agent \
     ./cmd/agent
@@ -26,28 +20,17 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # Stage 2: Runtime
 FROM alpine:3.19
 
-# Install runtime dependencies (minimal)
 RUN apk add --no-cache ca-certificates curl
 
-# Create non-root user
 RUN addgroup -g 1000 certctl && \
     adduser -D -u 1000 -G certctl certctl
 
-# Set working directory
 WORKDIR /app
 
-# Copy binary from builder
 COPY --from=builder /app/bin/agent .
 
-# Change ownership
 RUN chown -R certctl:certctl /app
 
-# Switch to non-root user
 USER certctl
 
-# Health check (optional, depends on agent implementation)
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:9000/health || exit 1 || true
-
-# Default entrypoint is the agent
 ENTRYPOINT ["/app/agent"]
